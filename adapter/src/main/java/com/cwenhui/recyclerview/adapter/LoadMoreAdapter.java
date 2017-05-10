@@ -22,7 +22,6 @@ import com.cwenhui.recyclerview.loadmore.SimpleLoadMoreView;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -83,22 +82,22 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
 
     private RecyclerView mRecyclerView;     // 用于检查列表是否满屏
 
-    public LoadMoreAdapter(Context context) {
+    private LoadMoreAdapter(Context context) {
         super(context);
     }
 
-    public LoadMoreAdapter(Context context, int layoutRes) {
+    private LoadMoreAdapter(Context context, int layoutRes) {
         super(context);
-        setDecorator(new Decorator());      // 最好让用户自己去定义并赋值
+        setDecorator(new DefaultDecorator());      // 最好让用户自己去定义并赋值
         setLoadMoreViewRes(layoutRes);
     }
 
-    public LoadMoreAdapter(Context context, Map<Integer, Integer> viewTypeToLayoutMap) {
+    private LoadMoreAdapter(Context context, Map<Integer, Integer> viewTypeToLayoutMap) {
         super(context, viewTypeToLayoutMap);
-        setDecorator(new Decorator());
+        setDecorator(new DefaultDecorator());
     }
 
-    protected RecyclerView getRecyclerView() {
+    private RecyclerView getRecyclerView() {
         return mRecyclerView;
     }
 
@@ -115,7 +114,7 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
     /**
      * same as recyclerView.setAdapter(), and save the instance of recyclerView
      */
-    public void bindToRecyclerView(RecyclerView recyclerView) {
+    private void bindToRecyclerView(RecyclerView recyclerView) {
         if (getRecyclerView() != null) {
             throw new RuntimeException("Don't bind twice");
         }
@@ -128,10 +127,12 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
      *
      * @param layoutRes
      */
-    public void setLoadMoreViewRes(int layoutRes) {
+    private void setLoadMoreViewRes(int layoutRes) {
         if (layoutRes != 0) {
             addViewTypeToLayoutMap(VIEW_TYPE_LOAD_MORE, layoutRes);
             add(null, VIEW_TYPE_LOAD_MORE);
+        } else {
+            throw new RuntimeException("请确定是否提供了Load More View的布局文件");
         }
     }
 
@@ -140,7 +141,7 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
      *
      * @param loadMoreView
      */
-    public void setLoadMoreView(LoadMoreView loadMoreView) {
+    private void setLoadMoreView(LoadMoreView loadMoreView) {
         this.mLoadMoreView = loadMoreView;
     }
 
@@ -152,7 +153,7 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
         mLoading = false;
     }
 
-    public void setOnLoadMoreListener(RequestLoadMoreListener requestLoadMoreListener, RecyclerView
+    private void setOnLoadMoreListener(RequestLoadMoreListener requestLoadMoreListener, RecyclerView
             recyclerView) {
         openLoadMore(requestLoadMoreListener);
         if (getRecyclerView() == null) {
@@ -165,18 +166,18 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
      *
      * @see #disableLoadMoreIfNotFullPage(RecyclerView)
      */
-    public void disableLoadMoreIfNotFullPage() {
+    private void disableLoadMoreIfNotFullPage() {
         checkNotNull();
         disableLoadMoreIfNotFullPage(getRecyclerView());
     }
 
     /**
-     * check if full page after {@link #setNewData(List)}, if full, it will enable load more again.
+     * check if full page after {@link #set(List, int)}, if full, it will enable load more again.
      *
      * @param recyclerView your recyclerView
-     * @see #setNewData(List)
+     * @see #set(List, int)
      */
-    public void disableLoadMoreIfNotFullPage(RecyclerView recyclerView) {
+    private void disableLoadMoreIfNotFullPage(RecyclerView recyclerView) {
         setEnableLoadMore(false);
         if (recyclerView == null) return;
         RecyclerView.LayoutManager manager = recyclerView.getLayoutManager();
@@ -213,7 +214,7 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
      *
      * @param enable True if load more is enabled, false otherwise.
      */
-    public void setEnableLoadMore(boolean enable) {
+    private void setEnableLoadMore(boolean enable) {
         int oldLoadMoreCount = getLoadMoreViewCount();
         mLoadMoreEnable = enable;
         int newLoadMoreCount = getLoadMoreViewCount();
@@ -246,7 +247,7 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
      *
      * @param duration The length of the animation, in milliseconds.
      */
-    public void setDuration(int duration) {
+    private void setDuration(int duration) {
         mDuration = duration;
     }
 
@@ -255,7 +256,7 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
      *
      * @return 0 or 1
      */
-    public int getLoadMoreViewCount() {
+    private int getLoadMoreViewCount() {
         if (mRequestLoadMoreListener == null || !mLoadMoreEnable) {
             return 0;
         }
@@ -266,23 +267,6 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
             return 0;
         }
         return 1;
-    }
-
-    /**
-     * setting up a new instance to data;
-     *
-     * @param data
-     */
-    public void setNewData(@Nullable List data) {
-        mCollection = data == null ? new ArrayList() : data;
-        if (mRequestLoadMoreListener != null) {
-            mNextLoadEnable = true;
-            mLoadMoreEnable = true;
-            mLoading = false;
-            mLoadMoreView.setLoadMoreStatus(LoadMoreView.STATUS_DEFAULT);
-        }
-        mLastPosition = -1;
-        notifyDataSetChanged();
     }
 
     private int getTheBiggestNumber(int[] numbers) {
@@ -361,7 +345,7 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
 
     private int mAutoLoadMoreSize = 1;
 
-    public void setAutoLoadMoreSize(int autoLoadMoreSize) {
+    private void setAutoLoadMoreSize(int autoLoadMoreSize) {
         if (autoLoadMoreSize > 1) {
             mAutoLoadMoreSize = autoLoadMoreSize;
         }
@@ -412,7 +396,7 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
      *
      * @param holder True if this item should traverse all spans.
      */
-    protected void setFullSpan(RecyclerView.ViewHolder holder) {
+    private void setFullSpan(RecyclerView.ViewHolder holder) {
         if (holder.itemView.getLayoutParams() instanceof StaggeredGridLayoutManager.LayoutParams) {
             StaggeredGridLayoutManager.LayoutParams params = (StaggeredGridLayoutManager.LayoutParams) holder
                     .itemView.getLayoutParams();
@@ -448,7 +432,7 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
      * @param anim
      * @param index
      */
-    protected void startAnim(Animator anim, int index) {
+    private void startAnim(Animator anim, int index) {
         anim.setDuration(mDuration).start();
         anim.setInterpolator(mInterpolator);
     }
@@ -459,7 +443,7 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
      * @param animationType One of {@link #ALPHAIN}, {@link #SCALEIN}, {@link #SLIDEIN_BOTTOM},
      *                      {@link #SLIDEIN_LEFT}, {@link #SLIDEIN_RIGHT}.
      */
-    public void openLoadAnimation(@AnimationType int animationType) {
+    private void openLoadAnimation(@AnimationType int animationType) {
         this.mOpenAnimationEnable = true;
         mCustomAnimation = null;
         switch (animationType) {
@@ -488,7 +472,7 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
      *
      * @param animation ObjectAnimator
      */
-    public void openLoadAnimation(BaseAnimation animation) {
+    private void openLoadAnimation(BaseAnimation animation) {
         this.mOpenAnimationEnable = true;
         this.mCustomAnimation = animation;
     }
@@ -496,7 +480,7 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
     /**
      * To open the animation when loading
      */
-    public void openLoadAnimation() {
+    private void openLoadAnimation() {
         this.mOpenAnimationEnable = true;
     }
 
@@ -505,16 +489,43 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
      *
      * @param firstOnly true just show anim when first loading false show anim when load the data every time
      */
-    public void isFirstOnly(boolean firstOnly) {
+    private void isFirstOnly(boolean firstOnly) {
         this.mFirstOnlyEnable = firstOnly;
     }
 
-    /******************** override MultiTypeAdapter start ***********************/
+    /**
+     * setting up a new instance to data;
+     *
+     * @param data
+     */
+    public void setNewData(@Nullable List data, int viewType) {
+        Object lastObject = mCollection.get(mCollection.size() - 1);
+        Integer lastViewType = mCollectionViewType.get(mCollectionViewType.size() - 1);
+        mCollection.clear();
+        mCollection.addAll(data);
+        mCollectionViewType.clear();
+        for (int i=0;i<mCollection.size();i++) {
+            mCollectionViewType.add(viewType);
+        }
+        mCollection.add(lastObject);
+        mCollectionViewType.add(lastViewType);
+        if (mRequestLoadMoreListener != null) {
+            mNextLoadEnable = true;
+            mLoadMoreEnable = true;
+            mLoading = false;
+            mLoadMoreView.setLoadMoreStatus(LoadMoreView.STATUS_DEFAULT);
+        }
+        mLastPosition = -1;
+        notifyDataSetChanged();
+    }
+
+    /********************
+     * override MultiTypeAdapter start
+     ***********************/
     @Override
     public void set(List viewModels, int viewType) {
         mCollection.clear();
         mCollectionViewType.clear();
-
         if (viewModels == null) {
             add(null, viewType);
         } else {
@@ -526,7 +537,6 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
     public void set(List viewModels, MultiViewType viewType) {
         mCollection.clear();
         mCollectionViewType.clear();
-
         addAll(viewModels, viewType);
     }
 
@@ -570,9 +580,12 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
         }
         notifyItemRangeInserted(pos, viewModels.size());
     }
-    /******************** override MultiTypeAdapter end ***********************/
 
-    class Decorator implements BaseViewAdapter.Decorator {
+    /********************
+     * override MultiTypeAdapter end
+     ***********************/
+
+    class DefaultDecorator implements BaseViewAdapter.Decorator {
         @Override
         public void decorator(BindingViewHolder holder, int position, int viewType) {
             if (viewType == VIEW_TYPE_LOAD_MORE) {
@@ -583,7 +596,7 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
                 public void onClick(View view) {
                     if (mLoadMoreView.getLoadMoreStatus() == LoadMoreView.STATUS_FAIL) {
                         mLoadMoreView.setLoadMoreStatus(LoadMoreView.STATUS_DEFAULT);
-                        notifyItemChanged(mCollection.size()-1);
+                        notifyItemChanged(mCollection.size() - 1);
                     }
                 }
             });
@@ -592,5 +605,110 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
 
     public interface RequestLoadMoreListener {
         void onLoadMoreRequested();
+    }
+
+    public static class Builder {
+        Context mContext;
+        RecyclerView mRecyclerView;
+        int mLoadMoreViewRes;
+        RecyclerView.LayoutManager mLayoutManager;
+        RequestLoadMoreListener mRequestLoadMoreListener;
+        int mAutoLoadMoreSize;
+        boolean isDisableLoadMoreIfNotFullPage;
+        boolean isFirstOnly = true;
+        boolean isOpenAnimation;
+        int mAnimationType;
+        BaseAnimation mBaseAnimation;
+        LoadMoreView mLoadMoreView;
+        int mDuration = 300;
+
+        public Builder(Context context) {
+            this.mContext = context;
+        }
+
+        public Builder setLoadMoreViewRes(int loadMoreViewRes) {
+            mLoadMoreViewRes = loadMoreViewRes;
+            return this;
+        }
+
+        public Builder setRequestLoadMoreListener(RequestLoadMoreListener listener) {
+            mRequestLoadMoreListener = listener;
+            return this;
+        }
+
+        public Builder setRecyclerView(RecyclerView recyclerView) {
+            this.mRecyclerView = recyclerView;
+            return this;
+        }
+
+        public Builder setLayoutManager(RecyclerView.LayoutManager layoutManager) {
+            this.mLayoutManager = layoutManager;
+            return this;
+        }
+
+        public Builder setAutoLoadMoreSize(int autoLoadMoreSize) {
+            this.mAutoLoadMoreSize = autoLoadMoreSize;
+            return this;
+        }
+
+        public Builder setDisableLoadMoreIfNotFullPage(boolean disableLoadMoreIfNotFullPage) {
+            isDisableLoadMoreIfNotFullPage = disableLoadMoreIfNotFullPage;
+            return this;
+        }
+
+        public Builder setFirstOnly(boolean firstOnly) {
+            isFirstOnly = firstOnly;
+            return this;
+        }
+
+        public Builder setAnimationType(int animationType) {
+            isOpenAnimation = true;
+            this.mAnimationType = animationType;
+            return this;
+        }
+
+        public Builder setBaseAnimation(BaseAnimation baseAnimation) {
+            isOpenAnimation = true;
+            this.mBaseAnimation = baseAnimation;
+            return this;
+        }
+
+        public Builder setLoadMoreView(LoadMoreView loadMoreView) {
+            this.mLoadMoreView = loadMoreView;
+            return this;
+        }
+
+        public Builder setDuration(int duration) {
+            mDuration = duration;
+            return this;
+        }
+
+        public LoadMoreAdapter build() {
+            LoadMoreAdapter adapter = new LoadMoreAdapter(mContext, mLoadMoreViewRes);
+            if (isDisableLoadMoreIfNotFullPage) {
+                adapter.disableLoadMoreIfNotFullPage();
+            }
+            if (mLoadMoreView != null) {
+                adapter.setLoadMoreView(mLoadMoreView);
+            }
+            if (mRecyclerView == null) {
+                throw new RuntimeException("请确定提供了RecyclerView");
+            }
+            mRecyclerView.setLayoutManager(mLayoutManager);
+            adapter.setOnLoadMoreListener(mRequestLoadMoreListener, mRecyclerView);
+            adapter.setAutoLoadMoreSize(mAutoLoadMoreSize);
+            if (isOpenAnimation) {
+                if (mAnimationType != 0) {
+                    adapter.openLoadAnimation(mAnimationType);
+                } else if (mBaseAnimation != null) {
+                    adapter.openLoadAnimation(mBaseAnimation);
+                } else {
+                    adapter.openLoadAnimation();
+                }
+                adapter.setDuration(mDuration);
+                adapter.isFirstOnly(isFirstOnly);
+            }
+            return adapter;
+        }
     }
 }

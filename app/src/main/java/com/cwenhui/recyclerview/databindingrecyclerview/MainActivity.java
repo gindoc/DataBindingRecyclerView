@@ -28,14 +28,18 @@ public class MainActivity extends AppCompatActivity implements LoadMoreAdapter.R
                         "ORANGE", "APPLE"};
                 adapter.addAll(Arrays.asList(ss), ITEM);
                 adapter.loadMoreComplete();
-            } else if (msg.what == 1){
-//                adapter.loadMoreComplete();
-
             } else if (msg.what == 2) {
                 String[] ss = {"NIVEA MEN2", "CHOCOLATE2", "COLA2", "TEA2", "RICE2", "RIO2", "BEEF2",
                         "MILK2", "ORANGE2", "APPLE2"};
                 adapter.addAll(Arrays.asList(ss), ITEM);
                 adapter.loadMoreEnd();
+                handler.sendEmptyMessageDelayed(3, 3000);
+            } else if (msg.what == 3) {
+                String[] ss = {"NIVEA MEN..", "CHOCOLATE..", "COLA..", "TEA..", "RICE..", "RIO..", "BEEF..",
+                        "MILK..", "ORANGE..", "APPLE.."};
+                adapter.setNewData(Arrays.asList(ss), ITEM);
+                adapter.loadMoreComplete();
+                isFirst = 0;
             }
 
         }
@@ -45,14 +49,14 @@ public class MainActivity extends AppCompatActivity implements LoadMoreAdapter.R
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
-        adapter = new LoadMoreAdapter(this, R.layout.layout_simple_load_more);
-        mBinding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        adapter.setOnLoadMoreListener(this, mBinding.recyclerView);
-        adapter.setAutoLoadMoreSize(10);
-//        adapter.disableLoadMoreIfNotFullPage();
-//        adapter.openLoadAnimation(new SlideInLeftAnimation());
-        adapter.openLoadAnimation(LoadMoreAdapter.SLIDEIN_LEFT);
-//        adapter.isFirstOnly(false);
+        adapter = new LoadMoreAdapter.Builder(this)
+                .setLoadMoreViewRes(R.layout.layout_simple_load_more)
+                .setAutoLoadMoreSize(10)
+                .setAnimationType(LoadMoreAdapter.SLIDEIN_LEFT)
+                .setLayoutManager(new LinearLayoutManager(this))
+                .setRecyclerView(mBinding.recyclerView)
+                .setRequestLoadMoreListener(this)
+                .build();
 
         List<String> strings = new ArrayList<>();
         String[] ss = {"小明", "细明", "粗哥", "野蛮哥", "靓仔", "美女", "嘿嘿嘿", "咯咯咯", "啦啦啦", "香蕉人"};
@@ -89,6 +93,13 @@ public class MainActivity extends AppCompatActivity implements LoadMoreAdapter.R
                 }
             }, 2000);
             ++isFirst;
-        }
+        }/* else if (isFirst == 3) {
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    handler.sendEmptyMessage(3);
+                }
+            }, 3000);
+        }*/
     }
 }
