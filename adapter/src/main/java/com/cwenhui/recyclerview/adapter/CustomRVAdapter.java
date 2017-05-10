@@ -432,7 +432,7 @@ public class CustomRVAdapter extends MultiTypeAdapter {
      */
     private boolean headerViewAsFlow, footerViewAsFlow;
 
-    public void setHeaderViewAsFlow(boolean headerViewAsFlow) {
+    private void setHeaderViewAsFlow(boolean headerViewAsFlow) {
         this.headerViewAsFlow = headerViewAsFlow;
     }
 
@@ -440,7 +440,7 @@ public class CustomRVAdapter extends MultiTypeAdapter {
         return headerViewAsFlow;
     }
 
-    public void setFooterViewAsFlow(boolean footerViewAsFlow) {
+    private void setFooterViewAsFlow(boolean footerViewAsFlow) {
         this.footerViewAsFlow = footerViewAsFlow;
     }
 
