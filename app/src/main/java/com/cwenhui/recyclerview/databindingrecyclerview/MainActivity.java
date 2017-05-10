@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity implements LoadMoreAdapter.R
                 .setAutoLoadMoreSize(10)
                 .setAnimationType(LoadMoreAdapter.SLIDEIN_LEFT)
                 .setLayoutManager(new LinearLayoutManager(this))
+//                .setLayoutManager(new GridLayoutManager(this, 3))
                 .setRecyclerView(mBinding.recyclerView)
                 .setRequestLoadMoreListener(this)
                 .build();

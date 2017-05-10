@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.content.Context;
 import android.support.annotation.IntDef;
 import android.support.annotation.Nullable;
+import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
@@ -307,7 +308,7 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
         } else {
             mLoadMoreView.setLoadMoreStatus(LoadMoreView.STATUS_END);
 //            notifyItemChanged(getHeaderLayoutCount() + mData.size() + getFooterLayoutCount());
-            notifyItemChanged(mCollection.size());
+            notifyItemChanged(mCollection.size()-1);
         }
     }
 
@@ -321,7 +322,7 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
         mLoading = false;
         mLoadMoreView.setLoadMoreStatus(LoadMoreView.STATUS_DEFAULT);
 //        notifyItemChanged(getHeaderLayoutCount() + mData.size() + getFooterLayoutCount());
-        notifyItemChanged(mCollection.size());
+        notifyItemChanged(mCollection.size()-1);
     }
 
     /**
@@ -334,7 +335,7 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
         mLoading = false;
         mLoadMoreView.setLoadMoreStatus(LoadMoreView.STATUS_FAIL);
 //        notifyItemChanged(getHeaderLayoutCount() + mData.size() + getFooterLayoutCount());
-        notifyItemChanged(mCollection.size());
+        notifyItemChanged(mCollection.size()-1);
     }
 
     @Override
@@ -386,6 +387,58 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
         } else {
             addAnimation(holder);
         }
+    }
+
+    private SpanSizeLookup mSpanSizeLookup;
+
+    public interface SpanSizeLookup {
+        int getSpanSize(GridLayoutManager gridLayoutManager, int position);
+    }
+
+    /**
+     * @param spanSizeLookup instance to be used to query number of spans occupied by each item
+     *                       用于占领整行
+     */
+    public void setSpanSizeLookup(SpanSizeLookup spanSizeLookup) {
+        this.mSpanSizeLookup = spanSizeLookup;
+    }
+
+    @Override
+    public void onAttachedToRecyclerView(final RecyclerView recyclerView) {
+        super.onAttachedToRecyclerView(recyclerView);
+        RecyclerView.LayoutManager manager = recyclerView.getLayoutManager();
+        if (manager instanceof GridLayoutManager) {
+            final GridLayoutManager gridManager = ((GridLayoutManager) manager);
+            gridManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+                @Override
+                public int getSpanSize(int position) {
+                    int type = getItemViewType(position);
+//                    if (type == HEADER_VIEW && isHeaderViewAsFlow()) {
+//                        return 1;
+//                    }
+//                    if (type == FOOTER_VIEW && isFooterViewAsFlow()) {
+//                        return 1;
+//                    }
+                    if (mSpanSizeLookup == null) {
+                        return isFixedViewType(type) ? gridManager.getSpanCount() : 1;
+                    } else {
+//                        return (isFixedViewType(type)) ? gridManager.getSpanCount() : mSpanSizeLookup
+// .getSpanSize(gridManager,
+//                                position - getHeaderLayoutCount());
+                        return (isFixedViewType(type)) ? gridManager.getSpanCount() :
+                                mSpanSizeLookup.getSpanSize(gridManager, position);
+                    }
+                }
+
+
+            });
+        }
+    }
+
+    protected boolean isFixedViewType(int type) {
+//        return type == EMPTY_VIEW || type == HEADER_VIEW || type == FOOTER_VIEW || type ==
+//                LOADING_VIEW;
+        return type == VIEW_TYPE_LOAD_MORE;
     }
 
     /**
@@ -504,7 +557,7 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
         mCollection.clear();
         mCollection.addAll(data);
         mCollectionViewType.clear();
-        for (int i=0;i<mCollection.size();i++) {
+        for (int i = 0; i < mCollection.size(); i++) {
             mCollectionViewType.add(viewType);
         }
         mCollection.add(lastObject);
@@ -694,6 +747,8 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
             if (mRecyclerView == null) {
                 throw new RuntimeException("请确定提供了RecyclerView");
             }
+            if (mLayoutManager == null)
+                throw new RuntimeException("请确定提供了LayoutManager");
             mRecyclerView.setLayoutManager(mLayoutManager);
             adapter.setOnLoadMoreListener(mRequestLoadMoreListener, mRecyclerView);
             adapter.setAutoLoadMoreSize(mAutoLoadMoreSize);
