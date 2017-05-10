@@ -32,39 +32,30 @@ import java.util.Map;
  * FOR   :
  */
 
-public class LoadMoreAdapter extends MultiTypeAdapter {
+public class CustomRVAdapter extends MultiTypeAdapter {
+    private static final int VIEW_TYPE_HEADER = 0x000000220;
+    private static final int VIEW_TYPE_FOOTER = 0x000000221;
     private static final int VIEW_TYPE_LOAD_MORE = 0x00000222;
-    private LoadMoreView mLoadMoreView = new SimpleLoadMoreView();
-    //load more
+    private boolean hasHeader;
+    private boolean hasFooter;
+    private LoadMoreView mLoadMoreView = new SimpleLoadMoreView();      // 保存lode more view的状态
+
+    /**
+     * load more
+     */
     private boolean mNextLoadEnable = false;
     private boolean mLoadMoreEnable = false;
     private boolean mLoading = false;
     private RequestLoadMoreListener mRequestLoadMoreListener;
 
-    //Animation
     /**
+     * Animation
      * Use with {@link #openLoadAnimation}
      */
     public static final int ALPHAIN = 0x00000001;
-
-    /**
-     * Use with {@link #openLoadAnimation}
-     */
     public static final int SCALEIN = 0x00000002;
-
-    /**
-     * Use with {@link #openLoadAnimation}
-     */
     public static final int SLIDEIN_BOTTOM = 0x00000003;
-
-    /**
-     * Use with {@link #openLoadAnimation}
-     */
     public static final int SLIDEIN_LEFT = 0x00000004;
-
-    /**
-     * Use with {@link #openLoadAnimation}
-     */
     public static final int SLIDEIN_RIGHT = 0x00000005;
 
     @IntDef({ALPHAIN, SCALEIN, SLIDEIN_BOTTOM, SLIDEIN_LEFT, SLIDEIN_RIGHT})
@@ -72,28 +63,28 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
     public @interface AnimationType {
     }
 
-    private boolean mFirstOnlyEnable = true;
-    private boolean mOpenAnimationEnable = false;
-    private Interpolator mInterpolator = new LinearInterpolator();
-    private int mDuration = 300;
-    private int mLastPosition = -1;
+    private boolean mFirstOnlyEnable = true;                            // 动画是否只执行一次
+    private boolean mOpenAnimationEnable = false;                       // 是否开启动画
+    private Interpolator mInterpolator = new LinearInterpolator();      // 动画插值器
+    private int mDuration = 300;                                        // 动画执行时间
+    private int mLastPosition = -1;                                     // 上个动画的下标
 
-    private BaseAnimation mCustomAnimation;
-    private BaseAnimation mSelectAnimation = new AlphaInAnimation();
+    private BaseAnimation mCustomAnimation;                             // 自定义动画
+    private BaseAnimation mSelectAnimation = new AlphaInAnimation();    // 库提供的动画（和自定义动画2选1执行）
 
-    private RecyclerView mRecyclerView;     // 用于检查列表是否满屏
+    private RecyclerView mRecyclerView;                                 // 用于检查列表是否满屏
 
-    private LoadMoreAdapter(Context context) {
+    private CustomRVAdapter(Context context) {
         super(context);
     }
 
-    private LoadMoreAdapter(Context context, int layoutRes) {
+    private CustomRVAdapter(Context context, int layoutRes) {
         super(context);
         setDecorator(new DefaultDecorator());      // 最好让用户自己去定义并赋值
-        setLoadMoreViewRes(layoutRes);
+        setLoadMoreViewLayout(layoutRes);
     }
 
-    private LoadMoreAdapter(Context context, Map<Integer, Integer> viewTypeToLayoutMap) {
+    private CustomRVAdapter(Context context, Map<Integer, Integer> viewTypeToLayoutMap) {
         super(context, viewTypeToLayoutMap);
         setDecorator(new DefaultDecorator());
     }
@@ -106,6 +97,9 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
         mRecyclerView = recyclerView;
     }
 
+    /**
+     * 检测是否有设置recyclerView
+     */
     private void checkNotNull() {
         if (getRecyclerView() == null) {
             throw new RuntimeException("please bind recyclerView first!");
@@ -124,20 +118,54 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
     }
 
     /**
+     * 添加Header的布局文件
+     *
+     * @param layoutRes
+     */
+    private void setHeaderLayout(int layoutRes) {
+        hasHeader = true;
+        addViewTypeToLayoutMap(VIEW_TYPE_HEADER, layoutRes);
+//        add(null, VIEW_TYPE_HEADER);
+        mCollection.add(0, null);
+        mCollectionViewType.add(0, VIEW_TYPE_HEADER);
+    }
+
+    /**
+     * 添加Footer的布局文件
+     *
+     * @param layoutRes
+     */
+    private void setFooterLayout(int layoutRes) {
+        hasFooter = true;
+        addViewTypeToLayoutMap(VIEW_TYPE_FOOTER, layoutRes);
+        if (mCollection.size() > 1) {
+            mCollection.add(mCollection.size() - 1, null);
+            mCollectionViewType.add(mCollectionViewType.size() - 1, VIEW_TYPE_FOOTER);
+        } else if (hasHeader) {
+            mCollection.add(null);
+            mCollectionViewType.add(VIEW_TYPE_FOOTER);
+        } else {
+            mCollection.add(0, null);
+            mCollectionViewType.add(0, VIEW_TYPE_FOOTER);
+        }
+
+    }
+
+    /**
      * 将“加载更多”视图的布局添加到mItemTypeToLayoutMap中，对应的ViewType是VIEW_TYPE_LOAD_MORE
      *
      * @param layoutRes
      */
-    private void setLoadMoreViewRes(int layoutRes) {
+    private void setLoadMoreViewLayout(int layoutRes) {
         if (layoutRes != 0) {
             addViewTypeToLayoutMap(VIEW_TYPE_LOAD_MORE, layoutRes);
-            add(null, VIEW_TYPE_LOAD_MORE);
+            int count = mCollection.size();
+            mCollection.add(count == 0 ? 0 : count - 1, null);
+            mCollectionViewType.add(count == 0 ? 0 : count - 1, VIEW_TYPE_LOAD_MORE);
         } else {
             throw new RuntimeException("请确定是否提供了Load More View的布局文件");
         }
     }
-
-// load more start
 
     /**
      * 设置LoadMoreView(包含“加载更多”视图的各种状态)
@@ -223,14 +251,12 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
 
         if (oldLoadMoreCount == 1) {
             if (newLoadMoreCount == 0) {
-//                notifyItemRemoved(getHeaderLayoutCount() + mData.size() + getFooterLayoutCount());
-                notifyItemRemoved(mCollection.size()-1);
+                notifyItemRemoved(mCollection.size() - 1);
             }
         } else {
             if (newLoadMoreCount == 1) {
                 mLoadMoreView.setLoadMoreStatus(LoadMoreView.STATUS_DEFAULT);
-//                notifyItemInserted(getHeaderLayoutCount() + mData.size() + getFooterLayoutCount());
-                notifyItemInserted(mCollection.size()-1);
+                notifyItemInserted(mCollection.size() - 1);
             }
         }
     }
@@ -304,11 +330,9 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
         mNextLoadEnable = false;
         mLoadMoreView.setLoadMoreEndGone(gone);
         if (gone) {
-//            notifyItemRemoved(getHeaderLayoutCount() + mData.size() + getFooterLayoutCount());
-            notifyItemRemoved(mCollection.size()-1);
+            notifyItemRemoved(mCollection.size() - 1);
         } else {
             mLoadMoreView.setLoadMoreStatus(LoadMoreView.STATUS_END);
-//            notifyItemChanged(getHeaderLayoutCount() + mData.size() + getFooterLayoutCount());
             notifyItemChanged(mCollection.size() - 1);
         }
     }
@@ -322,7 +346,6 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
         }
         mLoading = false;
         mLoadMoreView.setLoadMoreStatus(LoadMoreView.STATUS_DEFAULT);
-//        notifyItemChanged(getHeaderLayoutCount() + mData.size() + getFooterLayoutCount());
         notifyItemChanged(mCollection.size() - 1);
     }
 
@@ -335,7 +358,6 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
         }
         mLoading = false;
         mLoadMoreView.setLoadMoreStatus(LoadMoreView.STATUS_FAIL);
-//        notifyItemChanged(getHeaderLayoutCount() + mData.size() + getFooterLayoutCount());
         notifyItemChanged(mCollection.size() - 1);
     }
 
@@ -383,14 +405,14 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
     public void onViewAttachedToWindow(BindingViewHolder holder) {
         super.onViewAttachedToWindow(holder);
         int type = holder.getItemViewType();
-        if (type == VIEW_TYPE_LOAD_MORE) {
+        if (isFixedViewType(type)) {
             setFullSpan(holder);
         } else {
             addAnimation(holder);
         }
     }
 
-    private SpanSizeLookup mSpanSizeLookup;
+    private SpanSizeLookup mSpanSizeLookup;             // 用于占领整行
 
     public interface SpanSizeLookup {
         int getSpanSize(GridLayoutManager gridLayoutManager, int position);
@@ -404,6 +426,28 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
         this.mSpanSizeLookup = spanSizeLookup;
     }
 
+    /**
+     * if asFlow is true, footer/header will arrange like normal item view.
+     * only works when use {@link GridLayoutManager},and it will ignore span size.
+     */
+    private boolean headerViewAsFlow, footerViewAsFlow;
+
+    public void setHeaderViewAsFlow(boolean headerViewAsFlow) {
+        this.headerViewAsFlow = headerViewAsFlow;
+    }
+
+    public boolean isHeaderViewAsFlow() {
+        return headerViewAsFlow;
+    }
+
+    public void setFooterViewAsFlow(boolean footerViewAsFlow) {
+        this.footerViewAsFlow = footerViewAsFlow;
+    }
+
+    public boolean isFooterViewAsFlow() {
+        return footerViewAsFlow;
+    }
+
     @Override
     public void onAttachedToRecyclerView(final RecyclerView recyclerView) {
         super.onAttachedToRecyclerView(recyclerView);
@@ -414,12 +458,12 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
                 @Override
                 public int getSpanSize(int position) {
                     int type = getItemViewType(position);
-//                    if (type == HEADER_VIEW && isHeaderViewAsFlow()) {
-//                        return 1;
-//                    }
-//                    if (type == FOOTER_VIEW && isFooterViewAsFlow()) {
-//                        return 1;
-//                    }
+                    if (type == VIEW_TYPE_HEADER && isHeaderViewAsFlow()) {
+                        return 1;
+                    }
+                    if (type == VIEW_TYPE_FOOTER && isFooterViewAsFlow()) {
+                        return 1;
+                    }
                     if (mSpanSizeLookup == null) {
                         return isFixedViewType(type) ? gridManager.getSpanCount() : 1;
                     } else {
@@ -437,9 +481,7 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
     }
 
     protected boolean isFixedViewType(int type) {
-//        return type == EMPTY_VIEW || type == HEADER_VIEW || type == FOOTER_VIEW || type ==
-//                LOADING_VIEW;
-        return type == VIEW_TYPE_LOAD_MORE;
+        return type == VIEW_TYPE_LOAD_MORE || type == VIEW_TYPE_HEADER || type == VIEW_TYPE_FOOTER;
     }
 
     /**
@@ -452,15 +494,11 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
      */
     private void setFullSpan(RecyclerView.ViewHolder holder) {
         if (holder.itemView.getLayoutParams() instanceof StaggeredGridLayoutManager.LayoutParams) {
-            StaggeredGridLayoutManager.LayoutParams params = (StaggeredGridLayoutManager.LayoutParams) holder
-                    .itemView.getLayoutParams();
+            StaggeredGridLayoutManager.LayoutParams params = (StaggeredGridLayoutManager.LayoutParams)
+                    holder.itemView.getLayoutParams();
             params.setFullSpan(true);
         }
     }
-
-// load more end
-
-// animation start
 
     /**
      * add animation when you want to show time
@@ -550,7 +588,6 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
     private void isFirstOnly(boolean firstOnly) {
         this.mFirstOnlyEnable = firstOnly;
     }
-// animation end
 
     /**
      * setting up a new instance to data;
@@ -558,16 +595,31 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
      * @param data
      */
     public void setNewData(@Nullable List data, int viewType) {
-        Object lastObject = mCollection.get(mCollection.size() - 1);
-        Integer lastViewType = mCollectionViewType.get(mCollectionViewType.size() - 1);
+        Integer loadMoreViewType = mCollectionViewType.get(mCollectionViewType.size() - 1);
+        Integer headerViewType = null;
+        Integer footerViewType = null;
+        if (hasHeader) {
+            headerViewType = mCollectionViewType.get(0);
+        }
+        if (hasFooter) {
+            footerViewType = mCollectionViewType.get(mCollection.size() - 2);
+        }
         mCollection.clear();
-        mCollection.addAll(data);
         mCollectionViewType.clear();
-        for (int i = 0; i < mCollection.size(); i++) {
+        if (hasHeader) {
+            mCollection.add(null);
+            mCollectionViewType.add(headerViewType);
+        }
+        mCollection.addAll(data);
+        for (int i = 0; i < mCollection.size()-1; i++) {
             mCollectionViewType.add(viewType);
         }
-        mCollection.add(lastObject);
-        mCollectionViewType.add(lastViewType);
+        if (hasFooter) {
+            mCollection.add(null);
+            mCollectionViewType.add(footerViewType);
+        }
+        mCollection.add(null);
+        mCollectionViewType.add(loadMoreViewType);
         if (mRequestLoadMoreListener != null) {
             mNextLoadEnable = true;
             mLoadMoreEnable = true;
@@ -581,35 +633,21 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
     /********************
      * override MultiTypeAdapter start
      ***********************/
-    /*@Override
-    public void set(List viewModels, int viewType) {
-        mCollection.clear();
-        mCollectionViewType.clear();
-        if (viewModels == null) {
-            add(null, viewType);
-        } else {
-            addAll(viewModels, viewType);
-        }
-    }
-
-    @Override
-    public void set(List viewModels, MultiViewType viewType) {
-        mCollection.clear();
-        mCollectionViewType.clear();
-        addAll(viewModels, viewType);
-    }*/
 
     @Override
     public void add(Object viewModel, int viewType) {
-        if (mCollection.size() == 0) {
-            add(0, viewModel, viewType);
-        } else {
-            add(mCollection.size() - 1, viewModel, viewType);       // 加载load view前面
-        }
+        int i = hasFooter ? 2 : 1;
+        add(mCollection.size() - i, viewModel, viewType);       // 加载到load view 和 footer 前面
     }
 
     @Override
     public void add(int position, Object viewModel, int viewType) {
+        if (hasHeader && position == 0) {
+            position = 1;       // 如果有header，不能添加到header的位置，否则header会丢失
+        }
+        if (hasFooter && position == mCollection.size() - 1) {
+            position -= 1;      // 如果有footer，不能添加到load more的位置，否则footer会丢失
+        }
         mCollection.add(position, viewModel);
         mCollectionViewType.add(position, viewType);
         notifyItemInserted(position);
@@ -617,12 +655,18 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
 
     @Override
     public void addAll(List viewModels, int viewType) {
-        int pos = mCollection.size() == 0 ? 0 : mCollection.size() - 1;
-        addAll(pos, viewModels, viewType);
+        int i = hasFooter ? 2 : 1;
+        addAll(mCollection.size() - i, viewModels, viewType);
     }
 
     @Override
     public void addAll(int position, List viewModels, int viewType) {
+        if (hasHeader && position == 0) {
+            position = 1;       // 如果有header，不能添加到header的位置，否则header会丢失
+        }
+        if (hasFooter && position == mCollection.size() - 1) {
+            position -= 1;      // 如果有footer，不能添加到load more的位置，否则footer会丢失
+        }
         mCollection.addAll(position, viewModels);
         for (int i = 0; i < viewModels.size(); i++) {
             mCollectionViewType.add(position + i, viewType);
@@ -632,7 +676,8 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
 
     @Override
     public void addAll(List viewModels, MultiViewType multiViewType) {
-        int pos = mCollection.size() == 0 ? 0 : mCollection.size() - 1;
+        int count = hasFooter ? 2 : 1;
+        int pos = mCollection.size() - count;
         mCollection.addAll(pos, viewModels);
         for (int i = 0; i < viewModels.size(); ++i) {
             mCollectionViewType.add(pos + i, multiViewType.getViewType(viewModels.get(i)));
@@ -648,21 +693,21 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
      * 用户可以自定义Decorator继承DefaultDecorator，重写decorator方法，
      * 也可以实现接口BaseViewAdapter.Decorator
      */
-    class DefaultDecorator implements BaseViewAdapter.Decorator {
+    class DefaultDecorator implements Decorator {
         @Override
         public void decorator(BindingViewHolder holder, int position, int viewType) {
             if (viewType == VIEW_TYPE_LOAD_MORE) {
                 mLoadMoreView.convert(holder);
-            }
-            holder.getBinding().getRoot().setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    if (mLoadMoreView.getLoadMoreStatus() == LoadMoreView.STATUS_FAIL) {
-                        mLoadMoreView.setLoadMoreStatus(LoadMoreView.STATUS_DEFAULT);
-                        notifyItemChanged(mCollection.size() - 1);
+                holder.getBinding().getRoot().setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        if (mLoadMoreView.getLoadMoreStatus() == LoadMoreView.STATUS_FAIL) {
+                            mLoadMoreView.setLoadMoreStatus(LoadMoreView.STATUS_DEFAULT);
+                            notifyItemChanged(mCollection.size() - 1);
+                        }
                     }
-                }
-            });
+                });
+            }
         }
     }
 
@@ -673,7 +718,11 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
     public static class Builder {
         Context mContext;
         RecyclerView mRecyclerView;
-        int mLoadMoreViewRes;
+        int mLoadMoreViewLayout;
+        int mHeaderLayout;
+        int mFooterLayout;
+        boolean mHeaderIsFlow;
+        boolean mFooterIsFlow;
         RecyclerView.LayoutManager mLayoutManager;
         RequestLoadMoreListener mRequestLoadMoreListener;
         int mAutoLoadMoreSize;
@@ -689,8 +738,30 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
             this.mContext = context;
         }
 
-        public Builder setLoadMoreViewRes(int loadMoreViewRes) {
-            mLoadMoreViewRes = loadMoreViewRes;
+        public Builder setLoadMoreViewLayout(int loadMoreViewLayout) {
+            mLoadMoreViewLayout = loadMoreViewLayout;
+            return this;
+        }
+
+        public Builder setHeaderLayout(int headerLayout) {
+            this.mHeaderLayout = headerLayout;
+            return this;
+        }
+
+        public Builder setHeaderLayout(int headerLayout, boolean isFlow) {
+            this.mHeaderLayout = headerLayout;
+            mHeaderIsFlow = isFlow;
+            return this;
+        }
+
+        public Builder setFooterLayout(int footerLayout) {
+            this.mFooterLayout = footerLayout;
+            return this;
+        }
+
+        public Builder setFooterLayout(int footerLayout, boolean isFlow) {
+            this.mFooterLayout = footerLayout;
+            mFooterIsFlow = isFlow;
             return this;
         }
 
@@ -746,8 +817,16 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
             return this;
         }
 
-        public LoadMoreAdapter build() {
-            LoadMoreAdapter adapter = new LoadMoreAdapter(mContext, mLoadMoreViewRes);
+        public CustomRVAdapter build() {
+            CustomRVAdapter adapter = new CustomRVAdapter(mContext, mLoadMoreViewLayout);
+            if (mHeaderLayout != 0) {
+                adapter.setHeaderLayout(mHeaderLayout);
+                adapter.setHeaderViewAsFlow(mHeaderIsFlow);
+            }
+            if (mFooterLayout != 0) {
+                adapter.setFooterLayout(mFooterLayout);
+                adapter.setFooterViewAsFlow(mFooterIsFlow);
+            }
             if (isDisableLoadMoreIfNotFullPage) {
                 adapter.disableLoadMoreIfNotFullPage();
             }

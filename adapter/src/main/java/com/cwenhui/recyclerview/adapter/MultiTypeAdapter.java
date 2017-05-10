@@ -56,7 +56,7 @@ public class MultiTypeAdapter extends BaseViewAdapter<Object> {
         return mCollectionViewType.get(position);
     }
 
-    public void set(List viewModels, int viewType) {
+    protected void set(List viewModels, int viewType) {
         mCollection.clear();
         mCollectionViewType.clear();
 
@@ -67,7 +67,7 @@ public class MultiTypeAdapter extends BaseViewAdapter<Object> {
         }
     }
 
-    public void set(List viewModels, MultiViewType viewType) {
+    protected void set(List viewModels, MultiViewType viewType) {
         mCollection.clear();
         mCollectionViewType.clear();
 
