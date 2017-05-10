@@ -638,6 +638,10 @@ public class LoadMoreAdapter extends MultiTypeAdapter {
      * override MultiTypeAdapter end
      ***********************/
 
+    /**
+     * 用户可以自定义Decorator继承DefaultDecorator，重写decorator方法，
+     * 也可以实现接口BaseViewAdapter.Decorator
+     */
     class DefaultDecorator implements BaseViewAdapter.Decorator {
         @Override
         public void decorator(BindingViewHolder holder, int position, int viewType) {
