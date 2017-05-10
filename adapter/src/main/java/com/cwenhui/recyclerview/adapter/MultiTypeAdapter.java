@@ -5,6 +5,7 @@ import android.databinding.DataBindingUtil;
 import android.databinding.ViewDataBinding;
 import android.support.annotation.LayoutRes;
 import android.support.v4.util.ArrayMap;
+import android.util.Log;
 import android.view.ViewGroup;
 
 import java.util.ArrayList;
@@ -53,6 +54,7 @@ public class MultiTypeAdapter extends BaseViewAdapter<Object> {
 
     @Override
     public int getItemViewType(int position) {
+        Log.e("POS", mCollectionViewType.size() + "--------" + position);
         return mCollectionViewType.get(position);
     }
 

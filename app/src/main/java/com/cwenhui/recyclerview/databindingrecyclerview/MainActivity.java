@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity implements CustomRVAdapter.R
                 .setLoadMoreViewLayout(R.layout.layout_simple_load_more)
                 .setHeaderLayout(R.layout.layout_header)
                 .setFooterLayout(R.layout.layout_footer)
-                .setAutoLoadMoreSize(10)
+                .setAutoLoadMoreSize(5)
                 .setAnimationType(LoadMoreAdapter.SLIDEIN_LEFT)
 //                .setLayoutManager(new LinearLayoutManager(this))
                 .setLayoutManager(new GridLayoutManager(this, 3))

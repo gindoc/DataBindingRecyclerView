@@ -606,12 +606,14 @@ public class CustomRVAdapter extends MultiTypeAdapter {
         }
         mCollection.clear();
         mCollectionViewType.clear();
+        int needSub = 0;
         if (hasHeader) {
             mCollection.add(null);
             mCollectionViewType.add(headerViewType);
+            needSub = 1;
         }
         mCollection.addAll(data);
-        for (int i = 0; i < mCollection.size()-1; i++) {
+        for (int i = 0; i < mCollection.size()-needSub; i++) {        // 如果有header，则减1，否则不减
             mCollectionViewType.add(viewType);
         }
         if (hasFooter) {
