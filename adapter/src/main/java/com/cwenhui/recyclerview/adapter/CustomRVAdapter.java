@@ -159,11 +159,8 @@ public class CustomRVAdapter extends MultiTypeAdapter {
     private void setLoadMoreViewLayout(int layoutRes) {
         if (layoutRes != 0) {
             addViewTypeToLayoutMap(VIEW_TYPE_LOAD_MORE, layoutRes);
-            int count = mCollection.size();
-                mCollection.add(null);
-                mCollectionViewType.add(VIEW_TYPE_LOAD_MORE);
-//            mCollection.add(count == 0 ? 0 : count - 1, null);
-//            mCollectionViewType.add(count == 0 ? 0 : count - 1, VIEW_TYPE_LOAD_MORE);
+            mCollection.add(null);
+            mCollectionViewType.add(VIEW_TYPE_LOAD_MORE);
         } else {
             throw new RuntimeException("请确定是否提供了Load More View的布局文件");
         }
@@ -196,8 +193,10 @@ public class CustomRVAdapter extends MultiTypeAdapter {
     /**
      * 在这个方法前一定要先set RecyclerView {@link #bindToRecyclerView(RecyclerView)}，
      * 否则当加载完数据调用loadComplete等方法时会报错:
-     * IllegalStateException: Cannot call this method(loadFail方法) while RecyclerView is computing a layout or scrolling
+     * IllegalStateException: Cannot call this method(loadFail方法) while RecyclerView is computing a layout
+     * or scrolling
      * Please use {@link #setOnLoadMoreListener(RequestLoadMoreListener, RecyclerView)}
+     *
      * @param requestLoadMoreListener
      */
     private void setOnLoadMoreListener(RequestLoadMoreListener requestLoadMoreListener) {
@@ -630,7 +629,7 @@ public class CustomRVAdapter extends MultiTypeAdapter {
             needSub = 1;
         }
         mCollection.addAll(data);
-        for (int i = 0; i < mCollection.size()-needSub; i++) {        // 如果有header，则减1，否则不减
+        for (int i = 0; i < mCollection.size() - needSub; i++) {        // 如果有header，则减1，否则不减
             mCollectionViewType.add(viewType);
         }
         if (hasFooter) {
@@ -659,7 +658,7 @@ public class CustomRVAdapter extends MultiTypeAdapter {
     public void add(Object viewModel, int viewType) {
         int i = hasFooter ? 1 : 0;
         i += getLoadMoreViewCount();
-        add(mCollection.size()-i, viewModel, viewType);         // 加载到load view 和 footer 前面
+        add(mCollection.size() - i, viewModel, viewType);         // 加载到load view 和 footer 前面
     }
 
     @Override
