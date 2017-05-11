@@ -76,6 +76,7 @@ public class CustomRVAdapter extends MultiTypeAdapter {
 
     private CustomRVAdapter(Context context) {
         super(context);
+        setDecorator(new DefaultDecorator());      // 最好让用户自己去定义并赋值
     }
 
     private CustomRVAdapter(Context context, int layoutRes) {
@@ -125,7 +126,6 @@ public class CustomRVAdapter extends MultiTypeAdapter {
     private void setHeaderLayout(int layoutRes) {
         hasHeader = true;
         addViewTypeToLayoutMap(VIEW_TYPE_HEADER, layoutRes);
-//        add(null, VIEW_TYPE_HEADER);
         mCollection.add(0, null);
         mCollectionViewType.add(0, VIEW_TYPE_HEADER);
     }
@@ -160,8 +160,10 @@ public class CustomRVAdapter extends MultiTypeAdapter {
         if (layoutRes != 0) {
             addViewTypeToLayoutMap(VIEW_TYPE_LOAD_MORE, layoutRes);
             int count = mCollection.size();
-            mCollection.add(count == 0 ? 0 : count - 1, null);
-            mCollectionViewType.add(count == 0 ? 0 : count - 1, VIEW_TYPE_LOAD_MORE);
+                mCollection.add(null);
+                mCollectionViewType.add(VIEW_TYPE_LOAD_MORE);
+//            mCollection.add(count == 0 ? 0 : count - 1, null);
+//            mCollectionViewType.add(count == 0 ? 0 : count - 1, VIEW_TYPE_LOAD_MORE);
         } else {
             throw new RuntimeException("请确定是否提供了Load More View的布局文件");
         }
@@ -189,6 +191,17 @@ public class CustomRVAdapter extends MultiTypeAdapter {
         if (getRecyclerView() == null) {
             setRecyclerView(recyclerView);
         }
+    }
+
+    /**
+     * 在这个方法前一定要先set RecyclerView {@link #bindToRecyclerView(RecyclerView)}，
+     * 否则当加载完数据调用loadComplete等方法时会报错:
+     * IllegalStateException: Cannot call this method(loadFail方法) while RecyclerView is computing a layout or scrolling
+     * Please use {@link #setOnLoadMoreListener(RequestLoadMoreListener, RecyclerView)}
+     * @param requestLoadMoreListener
+     */
+    private void setOnLoadMoreListener(RequestLoadMoreListener requestLoadMoreListener) {
+        openLoadMore(requestLoadMoreListener);
     }
 
     /**
@@ -595,14 +608,18 @@ public class CustomRVAdapter extends MultiTypeAdapter {
      * @param data
      */
     public void setNewData(@Nullable List data, int viewType) {
-        Integer loadMoreViewType = mCollectionViewType.get(mCollectionViewType.size() - 1);
+        int loadMoreViewCount = getLoadMoreViewCount();
+        Integer loadMoreViewType = null;
+        if (loadMoreViewCount == 1) {
+            loadMoreViewType = mCollectionViewType.get(mCollectionViewType.size() - loadMoreViewCount);
+        }
         Integer headerViewType = null;
         Integer footerViewType = null;
         if (hasHeader) {
             headerViewType = mCollectionViewType.get(0);
         }
         if (hasFooter) {
-            footerViewType = mCollectionViewType.get(mCollection.size() - 2);
+            footerViewType = mCollectionViewType.get(mCollection.size() - loadMoreViewCount - 1);
         }
         mCollection.clear();
         mCollectionViewType.clear();
@@ -620,8 +637,10 @@ public class CustomRVAdapter extends MultiTypeAdapter {
             mCollection.add(null);
             mCollectionViewType.add(footerViewType);
         }
-        mCollection.add(null);
-        mCollectionViewType.add(loadMoreViewType);
+        if (loadMoreViewCount == 1) {
+            mCollection.add(null);
+            mCollectionViewType.add(loadMoreViewType);
+        }
         if (mRequestLoadMoreListener != null) {
             mNextLoadEnable = true;
             mLoadMoreEnable = true;
@@ -638,8 +657,9 @@ public class CustomRVAdapter extends MultiTypeAdapter {
 
     @Override
     public void add(Object viewModel, int viewType) {
-        int i = hasFooter ? 2 : 1;
-        add(mCollection.size() - i, viewModel, viewType);       // 加载到load view 和 footer 前面
+        int i = hasFooter ? 1 : 0;
+        i += getLoadMoreViewCount();
+        add(mCollection.size()-i, viewModel, viewType);         // 加载到load view 和 footer 前面
     }
 
     @Override
@@ -647,8 +667,11 @@ public class CustomRVAdapter extends MultiTypeAdapter {
         if (hasHeader && position == 0) {
             position = 1;       // 如果有header，不能添加到header的位置，否则header会丢失
         }
-        if (hasFooter && position == mCollection.size() - 1) {
-            position -= 1;      // 如果有footer，不能添加到load more的位置，否则footer会丢失
+        if ((hasFooter && getLoadMoreViewCount() == 1 && position == mCollection.size() - 1) ||
+                (hasFooter && getLoadMoreViewCount() == 0 && position == mCollection.size()) ||
+                (!hasFooter && getLoadMoreViewCount() == 1 && position == mCollection.size())) {
+            // 如果有footer或load more view，添加到footer和load more的前面，否则footer和load more会丢失
+            position -= 1;
         }
         mCollection.add(position, viewModel);
         mCollectionViewType.add(position, viewType);
@@ -657,7 +680,8 @@ public class CustomRVAdapter extends MultiTypeAdapter {
 
     @Override
     public void addAll(List viewModels, int viewType) {
-        int i = hasFooter ? 2 : 1;
+        int i = hasFooter ? 1 : 0;
+        i += getLoadMoreViewCount();
         addAll(mCollection.size() - i, viewModels, viewType);
     }
 
@@ -666,8 +690,11 @@ public class CustomRVAdapter extends MultiTypeAdapter {
         if (hasHeader && position == 0) {
             position = 1;       // 如果有header，不能添加到header的位置，否则header会丢失
         }
-        if (hasFooter && position == mCollection.size() - 1) {
-            position -= 1;      // 如果有footer，不能添加到load more的位置，否则footer会丢失
+        if ((hasFooter && getLoadMoreViewCount() == 1 && position == mCollection.size() - 1) ||
+                (hasFooter && getLoadMoreViewCount() == 0 && position == mCollection.size()) ||
+                (!hasFooter && getLoadMoreViewCount() == 1 && position == mCollection.size())) {
+            // 如果有footer或load more view，添加到footer和load more的前面，否则footer和load more会丢失
+            position -= 1;
         }
         mCollection.addAll(position, viewModels);
         for (int i = 0; i < viewModels.size(); i++) {
@@ -678,7 +705,8 @@ public class CustomRVAdapter extends MultiTypeAdapter {
 
     @Override
     public void addAll(List viewModels, MultiViewType multiViewType) {
-        int count = hasFooter ? 2 : 1;
+        int count = hasFooter ? 1 : 0;
+        count += getLoadMoreViewCount();
         int pos = mCollection.size() - count;
         mCollection.addAll(pos, viewModels);
         for (int i = 0; i < viewModels.size(); ++i) {
@@ -727,7 +755,7 @@ public class CustomRVAdapter extends MultiTypeAdapter {
         boolean mFooterIsFlow;
         RecyclerView.LayoutManager mLayoutManager;
         RequestLoadMoreListener mRequestLoadMoreListener;
-        int mAutoLoadMoreSize;
+        int mAutoLoadMoreSize = 1;
         boolean isDisableLoadMoreIfNotFullPage;
         boolean isFirstOnly = true;
         boolean isOpenAnimation;
@@ -820,7 +848,7 @@ public class CustomRVAdapter extends MultiTypeAdapter {
         }
 
         public CustomRVAdapter build() {
-            CustomRVAdapter adapter = new CustomRVAdapter(mContext, mLoadMoreViewLayout);
+            CustomRVAdapter adapter = new CustomRVAdapter(mContext);
             if (mHeaderLayout != 0) {
                 adapter.setHeaderLayout(mHeaderLayout);
                 adapter.setHeaderViewAsFlow(mHeaderIsFlow);
@@ -841,7 +869,12 @@ public class CustomRVAdapter extends MultiTypeAdapter {
             if (mLayoutManager == null)
                 throw new RuntimeException("请确定提供了LayoutManager");
             mRecyclerView.setLayoutManager(mLayoutManager);
-            adapter.setOnLoadMoreListener(mRequestLoadMoreListener, mRecyclerView);
+            adapter.bindToRecyclerView(mRecyclerView);
+            if (mRequestLoadMoreListener != null && mLoadMoreViewLayout != 0) {
+                adapter.setOnLoadMoreListener(mRequestLoadMoreListener);
+                adapter.setLoadMoreViewLayout(mLoadMoreViewLayout);
+            }
+
             adapter.setAutoLoadMoreSize(mAutoLoadMoreSize);
             if (isOpenAnimation) {
                 if (mAnimationType != 0) {

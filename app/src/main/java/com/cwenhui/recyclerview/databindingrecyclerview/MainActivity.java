@@ -53,15 +53,16 @@ public class MainActivity extends AppCompatActivity implements CustomRVAdapter.R
         super.onCreate(savedInstanceState);
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
         adapter = new CustomRVAdapter.Builder(this)
-                .setLoadMoreViewLayout(R.layout.layout_simple_load_more)
-                .setHeaderLayout(R.layout.layout_header)
-                .setFooterLayout(R.layout.layout_footer)
+//                .setLoadMoreViewLayout(R.layout.layout_simple_load_more)
+//                .setHeaderLayout(R.layout.layout_header)
+//                .setFooterLayout(R.layout.layout_footer)
                 .setAutoLoadMoreSize(5)
                 .setAnimationType(LoadMoreAdapter.SLIDEIN_LEFT)
+                .setDuration(1000)
 //                .setLayoutManager(new LinearLayoutManager(this))
                 .setLayoutManager(new GridLayoutManager(this, 3))
                 .setRecyclerView(mBinding.recyclerView)
-                .setRequestLoadMoreListener(this)
+//                .setRequestLoadMoreListener(this)
                 .build();
 
         List<String> strings = new ArrayList<>();
@@ -74,7 +75,7 @@ public class MainActivity extends AppCompatActivity implements CustomRVAdapter.R
         strings.addAll(Arrays.asList(ss2));
         adapter.addViewTypeToLayoutMap(ITEM2, R.layout.item_recyclerview_another);
         adapter.addAll(strings, ITEM2);
-        mBinding.recyclerView.setAdapter(adapter);
+//        mBinding.recyclerView.setAdapter(adapter);
     }
 
     @Override
