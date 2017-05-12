@@ -1,28 +1,34 @@
 package com.cwenhui.recyclerview.databindingrecyclerview;
 
+import android.content.Intent;
 import android.databinding.DataBindingUtil;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.GridLayoutManager;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.SimpleItemAnimator;
+import android.view.View;
 
-import com.cwenhui.recyclerview.adapter.CustomRVAdapter;
-import com.cwenhui.recyclerview.adapter.LoadMoreAdapter;
+import com.cwenhui.recyclerview.adapter.DecorateAdapter;
 import com.cwenhui.recyclerview.databindingrecyclerview.databinding.ActivityMainBinding;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements CustomRVAdapter.RequestLoadMoreListener {
-    private ActivityMainBinding mBinding;
-    //    private LoadMoreAdapter adapter;
-    private CustomRVAdapter adapter;
+/**
+ * Author: GIndoc on 2017/5/11 20:00
+ * email : 735506583@qq.com
+ * FOR   :
+ */
+
+public class DecorateActivity extends AppCompatActivity implements DecorateAdapter.RequestLoadMoreListener {
     private static final int ITEM = 0x00011111;
     private static final int ITEM2 = 0x00011112;
+    private ActivityMainBinding mBinding;
+    private DecorateAdapter adapter;
     private int isFirst = 0;
     private Handler handler = new Handler() {
         @Override
@@ -42,7 +48,7 @@ public class MainActivity extends AppCompatActivity implements CustomRVAdapter.R
             } else if (msg.what == 3) {
                 String[] ss = {"NIVEA MEN..", "CHOCOLATE..", "COLA..", "TEA..", "RICE..", "RIO..", "BEEF..",
                         "MILK..", "ORANGE..", "APPLE.."};
-                adapter.setNewData(Arrays.asList(ss), ITEM);
+                adapter.set(Arrays.asList(ss), ITEM);
                 adapter.loadMoreComplete();
                 isFirst = 0;
             }
@@ -51,22 +57,12 @@ public class MainActivity extends AppCompatActivity implements CustomRVAdapter.R
     };
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
-        adapter = new CustomRVAdapter.Builder(this)
-                .setLoadMoreViewLayout(R.layout.layout_simple_load_more)
-                .setHeaderLayout(R.layout.layout_header)
-                .setFooterLayout(R.layout.layout_footer)
-                .setAutoLoadMoreSize(5)
-                .setAnimationType(LoadMoreAdapter.SLIDEIN_LEFT)
-                .setDuration(500)
-//                .setLayoutManager(new LinearLayoutManager(this))
-                .setLayoutManager(new GridLayoutManager(this, 3))
-                .setRecyclerView(mBinding.recyclerView)
-                .setRequestLoadMoreListener(this)
-                .build();
-
+        adapter = new DecorateAdapter<Object>(this);
+        adapter.addHeader(View.inflate(this, R.layout.layout_header, null));
+        adapter.addFooter(View.inflate(this, R.layout.layout_footer, null));
         List<String> strings = new ArrayList<>();
         String[] ss = {"小明", "细明", "粗哥", "野蛮哥", "靓仔", "美女", "嘿嘿嘿", "咯咯咯", "啦啦啦", "香蕉人"};
         strings.addAll(Arrays.asList(ss));
@@ -78,6 +74,16 @@ public class MainActivity extends AppCompatActivity implements CustomRVAdapter.R
         adapter.addViewTypeToLayoutMap(ITEM2, R.layout.item_recyclerview_another);
         adapter.addAll(strings, ITEM2);
 //        mBinding.recyclerView.setAdapter(adapter);
+//        mBinding.recyclerView.setLayoutManager(new GridLayoutManager(this, 2));
+        mBinding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        adapter.setRequestLoadMoreListener(this,
+                View.inflate(this, R.layout.layout_simple_load_more, null), mBinding.recyclerView);
+        ((SimpleItemAnimator) mBinding.recyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
+
+    }
+
+    public static Intent getStartIntent(MainActivity mainActivity) {
+        return new Intent(mainActivity, DecorateActivity.class);
     }
 
     @Override
@@ -107,29 +113,6 @@ public class MainActivity extends AppCompatActivity implements CustomRVAdapter.R
                 }
             }, 2000);
             ++isFirst;
-        }/* else if (isFirst == 3) {
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    handler.sendEmptyMessage(3);
-                }
-            }, 3000);
-        }*/
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return super.onCreateOptionsMenu(menu);
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.decorate:
-                startActivity(DecorateActivity.getStartIntent(this));
-                break;
         }
-        return super.onOptionsItemSelected(item);
     }
 }

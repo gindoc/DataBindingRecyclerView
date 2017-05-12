@@ -856,9 +856,6 @@ public class CustomRVAdapter extends MultiTypeAdapter {
                 adapter.setFooterLayout(mFooterLayout);
                 adapter.setFooterViewAsFlow(mFooterIsFlow);
             }
-            if (isDisableLoadMoreIfNotFullPage) {
-                adapter.disableLoadMoreIfNotFullPage();
-            }
             if (mLoadMoreView != null) {
                 adapter.setLoadMoreView(mLoadMoreView);
             }
@@ -872,6 +869,9 @@ public class CustomRVAdapter extends MultiTypeAdapter {
             if (mRequestLoadMoreListener != null && mLoadMoreViewLayout != 0) {
                 adapter.setOnLoadMoreListener(mRequestLoadMoreListener);
                 adapter.setLoadMoreViewLayout(mLoadMoreViewLayout);
+            }
+            if (isDisableLoadMoreIfNotFullPage) {
+                adapter.disableLoadMoreIfNotFullPage();
             }
 
             adapter.setAutoLoadMoreSize(mAutoLoadMoreSize);
