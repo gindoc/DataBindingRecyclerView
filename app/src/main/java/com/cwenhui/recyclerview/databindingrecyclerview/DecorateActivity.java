@@ -9,7 +9,6 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.SimpleItemAnimator;
-import android.view.View;
 
 import com.cwenhui.recyclerview.adapter.DecorateAdapter;
 import com.cwenhui.recyclerview.databindingrecyclerview.databinding.ActivityMainBinding;
@@ -61,8 +60,8 @@ public class DecorateActivity extends AppCompatActivity implements DecorateAdapt
         super.onCreate(savedInstanceState);
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
         adapter = new DecorateAdapter<Object>(this);
-        adapter.addHeader(View.inflate(this, R.layout.layout_header, null));
-        adapter.addFooter(View.inflate(this, R.layout.layout_footer, null));
+        adapter.addHeader(R.layout.layout_header);
+        adapter.addFooter(R.layout.layout_footer);
         List<String> strings = new ArrayList<>();
         String[] ss = {"小明", "细明", "粗哥", "野蛮哥", "靓仔", "美女", "嘿嘿嘿", "咯咯咯", "啦啦啦", "香蕉人"};
         strings.addAll(Arrays.asList(ss));
@@ -73,11 +72,9 @@ public class DecorateActivity extends AppCompatActivity implements DecorateAdapt
         strings.addAll(Arrays.asList(ss2));
         adapter.addViewTypeToLayoutMap(ITEM2, R.layout.item_recyclerview_another);
         adapter.addAll(strings, ITEM2);
-//        mBinding.recyclerView.setAdapter(adapter);
-//        mBinding.recyclerView.setLayoutManager(new GridLayoutManager(this, 2));
         mBinding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        adapter.setRequestLoadMoreListener(this,
-                View.inflate(this, R.layout.layout_simple_load_more, null), mBinding.recyclerView);
+        adapter.setRequestLoadMoreListener(this, R.layout.layout_simple_load_more,
+                mBinding.recyclerView);
         ((SimpleItemAnimator) mBinding.recyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
 
     }

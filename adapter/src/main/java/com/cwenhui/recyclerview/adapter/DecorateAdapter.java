@@ -4,7 +4,6 @@ import android.content.Context;
 import android.databinding.DataBindingUtil;
 import android.databinding.ViewDataBinding;
 import android.support.annotation.LayoutRes;
-import android.support.annotation.NonNull;
 import android.support.v4.util.ArrayMap;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -31,8 +30,8 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView
     private static final int HEADER_VIEW_TYPE = -1000;
     private static final int FOOTER_VIEW_TYPE = -2000;
     private static final int LOAD_MORE_VIEW_TYPE = -3000;
-    private final List<View> mHeaders = new ArrayList<>();
-    private final List<View> mFooters = new ArrayList<>();
+    private final List<Integer> mHeaders = new ArrayList<>();
+    private final List<Integer> mFooters = new ArrayList<>();
     protected ArrayList<Integer> mCollectionViewType;
     private ArrayMap<Integer, Integer> mItemTypeToLayoutMap = new ArrayMap<>();
     private List<T> mData;
@@ -41,7 +40,7 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView
      * load more
      */
     private LoadMoreView mLoadMoreView = new SimpleLoadMoreView();      // 保存lode more view的状态
-    private View mLoadView;
+    private int mLoadMoreViewLayout;
     private boolean mNextLoadEnable = false;
     private boolean mLoadMoreEnable = false;
     private boolean mLoading = false;
@@ -58,11 +57,11 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView
         mLayoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
     }
 
-    public void setRequestLoadMoreListener(RequestLoadMoreListener listener, View view,
+    public void setRequestLoadMoreListener(RequestLoadMoreListener listener, int loadMoreViewLayout,
                                            RecyclerView recyclerView) {
+        mLoadMoreViewLayout = loadMoreViewLayout;
         bindToRecyclerView(recyclerView);
         openLoadMore(listener);
-        mLoadView = view;
     }
 
     private RecyclerView getRecyclerView() {
@@ -263,63 +262,63 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView
     /**
      * Adds a header view.
      */
-    public void addHeader(@NonNull View view) {
-        if (view == null) {
+    public void addHeader(@LayoutRes int layout) {
+        if (layout == 0) {
             throw new IllegalArgumentException("You can't have a null header!");
         }
-        mHeaders.add(view);
+        mHeaders.add(layout);
     }
 
     /**
      * Adds a footer view.
      */
-    public void addFooter(@NonNull View view) {
-        if (view == null) {
+    public void addFooter(@LayoutRes int layout) {
+        if (layout == 0) {
             throw new IllegalArgumentException("You can't have a null footer!");
         }
-        mFooters.add(view);
+        mFooters.add(layout);
     }
 
-    public void removeFooter(@NonNull View view) {
-        if (view == null) {
+    public void removeFooter(@LayoutRes int layout) {
+        if (layout == 0) {
             throw new IllegalArgumentException("You can't remove a null footer!");
         }
-        mFooters.remove(view);
+        mFooters.remove(layout);
     }
 
     /**
      * Toggles the visibility of the header views.
      */
-    public void setHeaderVisibility(boolean shouldShow) {
-        for (View header : mHeaders) {
-            header.setVisibility(shouldShow ? View.VISIBLE : View.GONE);
-        }
-    }
+//    public void setHeaderVisibility(boolean shouldShow) {
+//        for (View header : mHeaders) {
+//            header.setVisibility(shouldShow ? View.VISIBLE : View.GONE);
+//        }
+//    }
 
-    public void setHeaderVisibility(View view, boolean shouldShow) {
-        for (View header : mHeaders) {
-            if (header == view) {
-                header.setVisibility(shouldShow ? View.VISIBLE : View.GONE);
-            }
-        }
-    }
+//    public void setHeaderVisibility(View view, boolean shouldShow) {
+//        for (View header : mHeaders) {
+//            if (header == view) {
+//                header.setVisibility(shouldShow ? View.VISIBLE : View.GONE);
+//            }
+//        }
+//    }
 
     /**
      * Toggles the visibility of the footer views.
      */
-    public void setFooterVisibility(boolean shouldShow) {
-        for (View footer : mFooters) {
-            footer.setVisibility(shouldShow ? View.VISIBLE : View.GONE);
-        }
-    }
+//    public void setFooterVisibility(boolean shouldShow) {
+//        for (View footer : mFooters) {
+//            footer.setVisibility(shouldShow ? View.VISIBLE : View.GONE);
+//        }
+//    }
 
-    public void setFooterVisibility(View view, boolean shouldShow) {
-        for (View footer : mFooters) {
-            if (footer == view) {
-                footer.setVisibility(shouldShow ? View.VISIBLE : View.GONE);
-            }
-        }
-    }
+//    public void setFooterVisibility(View view, boolean shouldShow) {
+//        for (View footer : mFooters) {
+//            if (footer == view) {
+//                footer.setVisibility(shouldShow ? View.VISIBLE : View.GONE);
+//            }
+//        }
+//    }
 
     /**
      * @return the number of headers.
@@ -339,14 +338,14 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView
      * Gets the indicated header, or null if it doesn't exist.
      */
     public View getHeader(int i) {
-        return i < mHeaders.size() ? mHeaders.get(i) : null;
+        return getRecyclerView().getChildAt(i);
     }
 
     /**
      * Gets the indicated footer, or null if it doesn't exist.
      */
     public View getFooter(int i) {
-        return i < mFooters.size() ? mFooters.get(i) : null;
+        return getRecyclerView().getChildAt(mHeaders.size() + mData.size() + i);
     }
 
     @LayoutRes
@@ -367,23 +366,17 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
         if (isHeader(viewType)) {
             int whichHeader = Math.abs(viewType - HEADER_VIEW_TYPE);
-            View headerView = mHeaders.get(whichHeader);
-            headerView.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT));
-            return new RecyclerView.ViewHolder(headerView) {
-            };
+            int headerView = mHeaders.get(whichHeader);
+            return new BindingViewHolder<>(DataBindingUtil.inflate(mLayoutInflater, headerView,
+                    viewGroup, false));
         } else if (isFooter(viewType)) {
             int whichFooter = Math.abs(viewType - FOOTER_VIEW_TYPE);
-            View footerView = mFooters.get(whichFooter);
-            footerView.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT));
-            return new RecyclerView.ViewHolder(footerView) {
-            };
-
+            int footerView = mFooters.get(whichFooter);
+            return new BindingViewHolder<>(DataBindingUtil.inflate(mLayoutInflater, footerView,
+                    viewGroup, false));
         } else if (viewType == LOAD_MORE_VIEW_TYPE) {
-            mLoadView.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT));
-            return new BindingViewHolder<>(DataBindingUtil.bind(mLoadView));
+            return new BindingViewHolder<>(DataBindingUtil.inflate(mLayoutInflater,
+                    mLoadMoreViewLayout, viewGroup, false));
         } else {
             int res = getLayoutRes(viewType);
             ViewDataBinding binding = DataBindingUtil.inflate(mLayoutInflater, res, viewGroup, false);
