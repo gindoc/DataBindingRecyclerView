@@ -7,5 +7,9 @@
         android:orderInCategory="101"
         android:title="DecorateAdapter"
         app:showAsAction="never"/>
-
+    <item
+        android:id="@+id/empty"
+        android:orderInCategory="101"
+        android:title="EmptyActivity"
+        app:showAsAction="never"/>
 </menu>

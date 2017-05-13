@@ -129,6 +129,9 @@ public class MainActivity extends AppCompatActivity implements CustomRVAdapter.R
             case R.id.decorate:
                 startActivity(DecorateActivity.getStartIntent(this));
                 break;
+            case R.id.empty:
+                startActivity(EmptyActivity.getStartIntent(this));
+                break;
         }
         return super.onOptionsItemSelected(item);
     }

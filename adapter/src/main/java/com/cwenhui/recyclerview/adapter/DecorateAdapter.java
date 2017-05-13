@@ -38,14 +38,21 @@ import java.util.List;
  */
 
 public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-    private static final int HEADER_VIEW_TYPE = -1000;
-    private static final int FOOTER_VIEW_TYPE = -2000;
-    private static final int LOAD_MORE_VIEW_TYPE = -3000;
+    public static final int HEADER_VIEW_TYPE = -1000;
+    public static final int FOOTER_VIEW_TYPE = -2000;
+    public static final int LOAD_MORE_VIEW_TYPE = -3000;
+    public static final int EMPTY_VIEW_TYPE = -4000;
     private final List<Integer> mHeaders = new ArrayList<>();
     private final List<Integer> mFooters = new ArrayList<>();
     protected ArrayList<Integer> mCollectionViewType;
     private ArrayMap<Integer, Integer> mItemTypeToLayoutMap = new ArrayMap<>();
     private List<T> mData;
+
+    // empty view
+    private int mEmptyViewLayout;
+    private boolean mIsUseEmpty = true;
+    private boolean mHeadAndEmptyEnable;
+    private boolean mFootAndEmptyEnable;
 
     /**
      * load more
@@ -229,11 +236,42 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHo
 
     @Override
     public int getItemCount() {
+        if (getEmptyViewCount() == 1) {
+            int count = 1;
+            if (mHeadAndEmptyEnable && mHeaders.size() != 0) {
+                count++;
+            }
+            if (mFootAndEmptyEnable && mFooters.size() != 0) {
+                count++;
+            }
+            return count;
+        }
         return mHeaders.size() + mData.size() + mFooters.size() + getLoadMoreViewCount();
     }
 
     @Override
     public int getItemViewType(int position) {
+        if (getEmptyViewCount() == 1) {
+            boolean header = mHeadAndEmptyEnable && mHeaders.size() != 0;
+            switch (position) {
+                case 0:
+                    if (header) {
+                        return HEADER_VIEW_TYPE;
+                    } else {
+                        return EMPTY_VIEW_TYPE;
+                    }
+                case 1:
+                    if (header) {
+                        return EMPTY_VIEW_TYPE;
+                    } else {
+                        return FOOTER_VIEW_TYPE;
+                    }
+                case 2:
+                    return FOOTER_VIEW_TYPE;
+                default:
+                    return EMPTY_VIEW_TYPE;
+            }
+        }
         if (position < mHeaders.size()) {
             return HEADER_VIEW_TYPE + position;
         } else if (position < (mHeaders.size() + mData.size())) {
@@ -294,6 +332,7 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHo
     public void set(List viewModels, MultiTypeAdapter.MultiViewType viewType) {
         mData.clear();
         mCollectionViewType.clear();
+
         mData.addAll(viewModels);
         for (int i = 0; i < viewModels.size(); ++i) {
             mCollectionViewType.add(viewType.getViewType(viewModels.get(i)));
@@ -313,6 +352,13 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHo
         notifyItemInserted(mHeaders.size() + position);
     }
 
+    public void clear() {
+        mData.clear();
+        mCollectionViewType.clear();
+        mItemTypeToLayoutMap.clear();
+        notifyDataSetChanged();
+    }
+
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
         if (isHeader(viewType)) {
@@ -328,6 +374,10 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHo
         } else if (viewType == LOAD_MORE_VIEW_TYPE) {
             return new BindingViewHolder<>(DataBindingUtil.inflate(mLayoutInflater,
                     mLoadMoreViewLayout, viewGroup, false));
+        } else if (viewType == EMPTY_VIEW_TYPE) {
+            ViewDataBinding binding = DataBindingUtil.inflate(mLayoutInflater, mEmptyViewLayout,
+                    viewGroup, false);
+            return new BindingViewHolder<>(binding);
         } else {
             int res = getLayoutRes(viewType);
             ViewDataBinding binding = DataBindingUtil.inflate(mLayoutInflater, res, viewGroup, false);
@@ -340,17 +390,20 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHo
         autoLoadMore(position);
         if (getItemViewType(position) == LOAD_MORE_VIEW_TYPE) {
             mLoadMoreView.convert((BindingViewHolder) holder);
-            ((BindingViewHolder) holder).getBinding().getRoot().setOnClickListener(new View.OnClickListener() {
+            ((BindingViewHolder) holder).getBinding().getRoot()
+                    .setOnClickListener(new View.OnClickListener() {
 
-                @Override
-                public void onClick(View view) {
-                    if (mLoadMoreView.getLoadMoreStatus() == LoadMoreView.STATUS_FAIL) {
-                        mLoadMoreView.setLoadMoreStatus(LoadMoreView.STATUS_DEFAULT);
-                        notifyItemChanged(getItemCount() - 1);
-                    }
-                }
-            });
-        }else if (position < mHeaders.size()) {
+                        @Override
+                        public void onClick(View view) {
+                            if (mLoadMoreView.getLoadMoreStatus() == LoadMoreView.STATUS_FAIL) {
+                                mLoadMoreView.setLoadMoreStatus(LoadMoreView.STATUS_DEFAULT);
+                                notifyItemChanged(getItemCount() - 1);
+                            }
+                        }
+                    });
+        } else if (getItemViewType(position) == EMPTY_VIEW_TYPE) {
+
+        } else if (position < mHeaders.size()) {
             // Headers don't need anything special
 
         } else if (position < mHeaders.size() + mData.size()) {
@@ -360,13 +413,14 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHo
             binding.setVariable(com.cwenhui.recyclerview.adapter.BR.item, item);
             binding.setVariable(com.cwenhui.recyclerview.adapter.BR.presenter, getPresenter());
             binding.executePendingBindings();
-            if (mDecorator != null) {
-                mDecorator.decorator(((BindingViewHolder) holder), position, getItemViewType(position));
-            }
         } else {
             // Footers don't need anything special
         }
+        if (mDecorator != null) {
+            mDecorator.decorator(((BindingViewHolder) holder), position, getItemViewType(position));
+        }
     }
+
     private int mAutoLoadMoreSize = 1;
 
     // load more start
@@ -633,8 +687,9 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHo
                     if (mSpanSizeLookup == null) {
                         return isFixedViewType(type) ? gridManager.getSpanCount() : 1;
                     } else {
-                        return (isFixedViewType(type)) ? gridManager.getSpanCount() : mSpanSizeLookup.getSpanSize(gridManager,
-                                position - mHeaders.size());
+                        return (isFixedViewType(type)) ? gridManager.getSpanCount() : mSpanSizeLookup
+                                .getSpanSize(gridManager,
+                                        position - mHeaders.size());
                     }
                 }
             });
@@ -671,6 +726,7 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHo
 
     /**
      * add animation when you want to show time
+     *
      * @param holder
      */
     private void addAnimation(RecyclerView.ViewHolder holder) {
@@ -759,6 +815,61 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHo
 
 // animation end
 
+// empty view start
+
+    /**
+     * if show empty view will be return 1 or not will be return 0
+     *
+     * @return
+     */
+    public int getEmptyViewCount() {
+        if (mEmptyViewLayout == 0) {
+            return 0;
+        }
+        if (!mIsUseEmpty) {
+            return 0;
+        }
+        if (mData.size() != 0) {
+            return 0;
+        }
+        return 1;
+    }
+
+    /**
+     * set emptyView show if adapter is empty and want to show headview and footview
+     * Call before {@link RecyclerView#setAdapter(RecyclerView.Adapter)}
+     *
+     * @param isHeadAndEmpty
+     * @param isFootAndEmpty
+     */
+    public void setHeaderFooterEmpty(boolean isHeadAndEmpty, boolean isFootAndEmpty) {
+        mHeadAndEmptyEnable = isHeadAndEmpty;
+        mFootAndEmptyEnable = isFootAndEmpty;
+    }
+
+    public void setEmptyViewLayout(int emptyViewLayout) {
+        boolean neededInsert = false;
+        if (mEmptyViewLayout == 0) {
+            neededInsert = true;
+        }
+        mEmptyViewLayout = emptyViewLayout;
+        mIsUseEmpty = true;
+        if (getEmptyViewCount() == 1) {
+            int position = 0;
+            if (mHeadAndEmptyEnable && mHeaders.size() != 0) {
+//                position++;
+                position += mHeaders.size();
+            }
+            if (neededInsert) {
+                notifyItemInserted(position);
+            } else {
+                notifyItemChanged(position);
+            }
+        }
+    }
+
+// empty view end
+
     /**
      * 用户可以自定义Decorator继承DefaultDecorator，重写decorator方法，
      * 也可以实现接口BaseViewAdapter.Decorator
@@ -804,7 +915,7 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHo
         return mPresenter;
     }
 
-    public static final class Builder{
+    public static final class Builder {
         Context mContext;
         RecyclerView mRecyclerView;
         int mLoadMoreViewLayout;
@@ -881,7 +992,7 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHo
             return this;
         }
 
-        public DecorateAdapter build(){
+        public DecorateAdapter build() {
             DecorateAdapter adapter = new DecorateAdapter(mContext);
             if (mLoadMoreView != null) {
                 adapter.setLoadMoreView(mLoadMoreView);
