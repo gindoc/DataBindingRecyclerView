@@ -58,7 +58,16 @@ public class DecorateActivity extends AppCompatActivity implements DecorateAdapt
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
-        adapter = new DecorateAdapter<Object>(this);
+        adapter = new DecorateAdapter.Builder(this)
+//                .setLoadMoreViewLayout(R.layout.layout_simple_load_more)
+//                .setRequestLoadMoreListener(this)
+                .setRecyclerView(mBinding.recyclerView)
+//                .setLayoutManager(new LinearLayoutManager(this))
+                .setLayoutManager(new GridLayoutManager(this, 2))
+                .setAutoLoadMoreSize(5)
+                .setDisableLoadMoreIfNotFullPage(true)
+                .setAnimationType(DecorateAdapter.SLIDEIN_LEFT)
+                .build();
         adapter.addHeader(R.layout.layout_header);
         adapter.addFooter(R.layout.layout_footer);
         List<String> strings = new ArrayList<>();
@@ -71,13 +80,8 @@ public class DecorateActivity extends AppCompatActivity implements DecorateAdapt
         strings.addAll(Arrays.asList(ss2));
         adapter.addViewTypeToLayoutMap(ITEM2, R.layout.item_recyclerview_another);
         adapter.addAll(strings, ITEM2);
-//        mBinding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        mBinding.recyclerView.setLayoutManager(new GridLayoutManager(this, 3));
-        adapter.setRequestLoadMoreListener(this, R.layout.layout_simple_load_more,
-                mBinding.recyclerView);
-//        ((SimpleItemAnimator) mBinding.recyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
-        adapter.setHeaderViewAsFlow(true);
-        adapter.setFooterViewAsFlow(true);
+//        adapter.setHeaderViewAsFlow(true);
+//        adapter.setFooterViewAsFlow(true);
     }
 
     public static Intent getStartIntent(MainActivity mainActivity) {
