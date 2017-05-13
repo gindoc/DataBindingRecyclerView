@@ -5,6 +5,7 @@ import android.databinding.DataBindingUtil;
 import android.databinding.ViewDataBinding;
 import android.support.annotation.LayoutRes;
 import android.support.v4.util.ArrayMap;
+import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
@@ -548,7 +549,7 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView
     }
 
     private boolean isFixedViewType(int type) {
-        return isHeader(type) || isFooter(type);
+        return isHeader(type) || isFooter(type) || type == LOAD_MORE_VIEW_TYPE;
     }
 
     public void setFullSpan(RecyclerView.ViewHolder holder) {
@@ -557,6 +558,68 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView
                     holder.itemView.getLayoutParams();
             params.setFullSpan(true);
         }
+    }
+
+    /**
+     * if asFlow is true, footer/header will arrange like normal item view.
+     * only works when use {@link GridLayoutManager},and it will ignore span size.
+     */
+    private boolean headerViewAsFlow, footerViewAsFlow;
+
+    public void setHeaderViewAsFlow(boolean headerViewAsFlow) {
+        this.headerViewAsFlow = headerViewAsFlow;
+    }
+
+    public boolean isHeaderViewAsFlow() {
+        return headerViewAsFlow;
+    }
+
+    public void setFooterViewAsFlow(boolean footerViewAsFlow) {
+        this.footerViewAsFlow = footerViewAsFlow;
+    }
+
+    public boolean isFooterViewAsFlow() {
+        return footerViewAsFlow;
+    }
+
+    @Override
+    public void onAttachedToRecyclerView(final RecyclerView recyclerView) {
+        super.onAttachedToRecyclerView(recyclerView);
+        RecyclerView.LayoutManager manager = recyclerView.getLayoutManager();
+        if (manager instanceof GridLayoutManager) {
+            final GridLayoutManager gridManager = ((GridLayoutManager) manager);
+            gridManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+                @Override
+                public int getSpanSize(int position) {
+                    int type = getItemViewType(position);
+                    if (isHeader(type) && isHeaderViewAsFlow()) {
+                        return 1;
+                    }
+                    if (isFooter(type) && isFooterViewAsFlow()) {
+                        return 1;
+                    }
+                    if (mSpanSizeLookup == null) {
+                        return isFixedViewType(type) ? gridManager.getSpanCount() : 1;
+                    } else {
+                        return (isFixedViewType(type)) ? gridManager.getSpanCount() : mSpanSizeLookup.getSpanSize(gridManager,
+                                position - mHeaders.size());
+                    }
+                }
+            });
+        }
+    }
+
+    private SpanSizeLookup mSpanSizeLookup;
+
+    public interface SpanSizeLookup {
+        int getSpanSize(GridLayoutManager gridLayoutManager, int position);
+    }
+
+    /**
+     * @param spanSizeLookup instance to be used to query number of spans occupied by each item
+     */
+    public void setSpanSizeLookup(SpanSizeLookup spanSizeLookup) {
+        this.mSpanSizeLookup = spanSizeLookup;
     }
 
 

@@ -7,8 +7,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.SimpleItemAnimator;
+import android.support.v7.widget.GridLayoutManager;
 
 import com.cwenhui.recyclerview.adapter.DecorateAdapter;
 import com.cwenhui.recyclerview.databindingrecyclerview.databinding.ActivityMainBinding;
@@ -72,11 +71,13 @@ public class DecorateActivity extends AppCompatActivity implements DecorateAdapt
         strings.addAll(Arrays.asList(ss2));
         adapter.addViewTypeToLayoutMap(ITEM2, R.layout.item_recyclerview_another);
         adapter.addAll(strings, ITEM2);
-        mBinding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
+//        mBinding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        mBinding.recyclerView.setLayoutManager(new GridLayoutManager(this, 3));
         adapter.setRequestLoadMoreListener(this, R.layout.layout_simple_load_more,
                 mBinding.recyclerView);
-        ((SimpleItemAnimator) mBinding.recyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
-
+//        ((SimpleItemAnimator) mBinding.recyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
+        adapter.setHeaderViewAsFlow(true);
+        adapter.setFooterViewAsFlow(true);
     }
 
     public static Intent getStartIntent(MainActivity mainActivity) {
