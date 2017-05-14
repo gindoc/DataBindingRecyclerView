@@ -7,9 +7,10 @@ import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
 import android.view.View;
 
-import com.cwenhui.recyclerview.adapter.BindingViewHolder;
 import com.cwenhui.recyclerview.adapter.DecorateAdapter;
 import com.cwenhui.recyclerview.databindingrecyclerview.databinding.ActivityEmptyBinding;
 
@@ -49,7 +50,9 @@ public class EmptyActivity extends AppCompatActivity {
         adapter.addHeader(R.layout.layout_header);
         adapter.addFooter(R.layout.layout_footer);
         adapter.setHeaderFooterEmpty(true, true);
+//        adapter.setEmptyViewLayout(R.layout.layout_empty);
         adapter.setDecorator(new MyDecorator());
+//        ((SimpleItemAnimator)mBinding.recyclerView.getItemAnimator()).setSupportsChangeAnimations(false);
         onRefresh();
     }
 
@@ -67,9 +70,9 @@ public class EmptyActivity extends AppCompatActivity {
     class MyDecorator implements DecorateAdapter.Decorator{
 
         @Override
-        public void decorator(BindingViewHolder holder, int position, int viewType) {
+        public void decorator(RecyclerView.ViewHolder holder, int position, int viewType) {
             if (viewType == DecorateAdapter.EMPTY_VIEW_TYPE) {
-                holder.getBinding().getRoot().setOnClickListener(new View.OnClickListener() {
+                holder.itemView.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
                         onRefresh();
@@ -80,17 +83,22 @@ public class EmptyActivity extends AppCompatActivity {
     }
 
     public void onRefresh() {
-        int res = R.layout.loading_view;
-        adapter.setEmptyViewLayout(res);
+//        int res = R.layout.loading_view;
+        adapter.setEmptyViewLayout(LayoutInflater.from(this).inflate(R.layout.loading_view,
+                mBinding.recyclerView, false));
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
                 if (mError) {
-                    adapter.setEmptyViewLayout(R.layout.error_view);
+//                    adapter.setEmptyViewLayout(R.layout.error_view);
+                    adapter.setEmptyViewLayout(LayoutInflater.from(EmptyActivity.this)
+                            .inflate(R.layout.error_view, mBinding.recyclerView, false));
                     mError = false;
                 } else {
                     if (mNoData) {
-                        adapter.setEmptyViewLayout(R.layout.empty_view);
+//                        adapter.setEmptyViewLayout(R.layout.empty_view);
+                        adapter.setEmptyViewLayout(LayoutInflater.from(EmptyActivity.this)
+                                .inflate(R.layout.empty_view, mBinding.recyclerView, false));
                         mNoData = false;
                     } else {
                         List<String> strings = new ArrayList<>();

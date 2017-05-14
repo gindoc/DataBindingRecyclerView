@@ -10,12 +10,14 @@ import android.support.v4.util.ArrayMap;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SimpleItemAnimator;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
+import android.widget.FrameLayout;
 
 import com.cwenhui.recyclerview.animation.AlphaInAnimation;
 import com.cwenhui.recyclerview.animation.BaseAnimation;
@@ -49,7 +51,7 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHo
     private List<T> mData;
 
     // empty view
-    private int mEmptyViewLayout;
+    private FrameLayout mEmptyViewLayout;
     private boolean mIsUseEmpty = true;
     private boolean mHeadAndEmptyEnable;
     private boolean mFootAndEmptyEnable;
@@ -375,9 +377,12 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHo
             return new BindingViewHolder<>(DataBindingUtil.inflate(mLayoutInflater,
                     mLoadMoreViewLayout, viewGroup, false));
         } else if (viewType == EMPTY_VIEW_TYPE) {
-            ViewDataBinding binding = DataBindingUtil.inflate(mLayoutInflater, mEmptyViewLayout,
-                    viewGroup, false);
-            return new BindingViewHolder<>(binding);
+            /*ViewDataBinding binding = DataBindingUtil.inflate(mLayoutInflater, mEmptyViewLayout,
+                    viewGroup, false);*/
+//            ViewDataBinding binding = DataBindingUtil.bind(mEmptyViewLayout);
+//            return new BindingViewHolder<>(binding);
+            return new RecyclerView.ViewHolder(mEmptyViewLayout) {
+            };
         } else {
             int res = getLayoutRes(viewType);
             ViewDataBinding binding = DataBindingUtil.inflate(mLayoutInflater, res, viewGroup, false);
@@ -417,7 +422,7 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHo
             // Footers don't need anything special
         }
         if (mDecorator != null) {
-            mDecorator.decorator(((BindingViewHolder) holder), position, getItemViewType(position));
+            mDecorator.decorator(holder, position, getItemViewType(position));
         }
     }
 
@@ -823,7 +828,7 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHo
      * @return
      */
     public int getEmptyViewCount() {
-        if (mEmptyViewLayout == 0) {
+        if (mEmptyViewLayout == null || mEmptyViewLayout.getChildCount() == 0) {
             return 0;
         }
         if (!mIsUseEmpty) {
@@ -847,12 +852,26 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHo
         mFootAndEmptyEnable = isFootAndEmpty;
     }
 
-    public void setEmptyViewLayout(int emptyViewLayout) {
+    public void setEmptyViewLayout(View emptyView) {
+        SimpleItemAnimator animator = (SimpleItemAnimator) getRecyclerView().getItemAnimator();
+        if (animator.getSupportsChangeAnimations()) {
+            animator.setSupportsChangeAnimations(false);
+        }
         boolean neededInsert = false;
-        if (mEmptyViewLayout == 0) {
+        if (mEmptyViewLayout == null) {
+            mEmptyViewLayout = new FrameLayout(emptyView.getContext());
+            final RecyclerView.LayoutParams layoutParams = new RecyclerView.LayoutParams(RecyclerView
+                    .LayoutParams.MATCH_PARENT, RecyclerView.LayoutParams.MATCH_PARENT);
+            final ViewGroup.LayoutParams lp = emptyView.getLayoutParams();
+            if (lp != null) {
+                layoutParams.width = lp.width;
+                layoutParams.height = lp.height;
+            }
+            mEmptyViewLayout.setLayoutParams(layoutParams);
             neededInsert = true;
         }
-        mEmptyViewLayout = emptyViewLayout;
+        mEmptyViewLayout.removeAllViews();
+        mEmptyViewLayout.addView(emptyView);
         mIsUseEmpty = true;
         if (getEmptyViewCount() == 1) {
             int position = 0;
@@ -864,6 +883,7 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHo
                 notifyItemInserted(position);
             } else {
                 notifyItemChanged(position);
+//                notifyDataSetChanged();
             }
         }
     }
@@ -900,7 +920,7 @@ public class DecorateAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     public interface Decorator {
-        void decorator(BindingViewHolder holder, int position, int viewType);
+        void decorator(RecyclerView.ViewHolder holder, int position, int viewType);
     }
 
     public void setDecorator(Decorator decorator) {

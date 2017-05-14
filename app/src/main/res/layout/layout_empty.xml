@@ -7,7 +7,20 @@
         android:orientation="vertical">
 
         <ViewStub
+            android:id="@+id/viewStub_loading"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"/>
+            android:layout_height="match_parent"
+            android:layout="@layout/loading_view"/>
+
+        <ViewStub
+            android:id="@+id/viewStub_error"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout="@layout/error_view"/>
+        <ViewStub
+            android:id="@+id/viewStub_no_Data"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout="@layout/empty_view"/>
     </FrameLayout>
 </layout>
